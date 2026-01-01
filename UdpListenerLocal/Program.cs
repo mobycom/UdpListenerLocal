@@ -68,7 +68,7 @@ namespace UdpListenerLocal
                 var ack = MobyComAckBuilder.BuildAck(payload);
                 udpClient.Send(ack, ack.Length, remote);
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = ConsoleColor.Blue;
                 Console.WriteLine("ACK sent");
                 Console.ResetColor();
             }
@@ -155,10 +155,7 @@ namespace UdpListenerLocal
             WriteField("Event:", packet.EventCode);
             WriteField("Partition:", packet.Partition);
             WriteField("Zone/User:", packet.ZoneOrUser);
-            WriteField(
-                "Channel:",
-                packet.Channel == 0x01 ? "Ethernet" : "Cellular/LTE"
-            );
+            WriteField("Channel:", packet.Channel.ToString("X2"));
         }
 
         static void LogHeartbeat(IPEndPoint remote, byte[] payload)
