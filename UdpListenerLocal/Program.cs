@@ -148,7 +148,7 @@ namespace UdpListenerLocal
             Console.WriteLine($"Packet received from {remote.Address}:{remote.Port}");
             Console.WriteLine($"RAW: {BitConverter.ToString(payload).Replace("-", " ")}");
 
-            WriteHeader("*VALID UDP EVENT*", ConsoleColor.Blue);
+            WriteHeader("*VALID UDP EVENT*", ConsoleColor.Green);
 
             WriteField("Device:", packet.DeviceId);
             WriteField("Account:", packet.Account);
@@ -176,7 +176,7 @@ namespace UdpListenerLocal
         static void WriteSeparator()
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(new string('#', 90));
+            Console.WriteLine(new string('#', 100));
             Console.ResetColor();
         }
 

@@ -89,11 +89,12 @@ namespace MobyCom.Udp
             // ================================
             // EVENT
             // ================================
-            // ⚠️ CORRIGIDO: Account bytes [18][19] - ordem DIRETA, não invertida
-            // No fio: [18]=0x45, [19]=0x23 → deve resultar em "4523"
+            // ⚠️ CORRIGIDO: Account bytes [19][18] - byte [19] é MSB, [18] é LSB
+            // Protocolo SIA DC-05: byte [19] contém o nibble mais significativo
+            // No fio: [19]=0x23, [18]=0x45 → deve resultar em "2345"
             string account =
-                payload[18].ToString("X2") +
-                payload[19].ToString("X2");
+                payload[19].ToString("X2") +
+                payload[18].ToString("X2");
 
             // ⚠️ CORRIGIDO: EventCode bytes [23][22] - byte [23] é MSB, [22] é LSB
             // Protocolo SIA DC-05: byte [23] contém o nibble mais significativo
