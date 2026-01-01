@@ -69,7 +69,7 @@ namespace UdpListenerLocal
                 udpClient.Send(ack, ack.Length, remote);
 
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine("ACK sent (MobyCom real)");
+                Console.WriteLine("ACK sent");
                 Console.ResetColor();
             }
         }
