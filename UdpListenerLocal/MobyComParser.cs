@@ -26,9 +26,7 @@ namespace MobyCom.Udp
         public byte Channel { get; init; }
         public byte Technology { get; init; }
 
-        // CRC16 recebido (passivo)
         public ushort Crc16 { get; init; }
-
         public byte[] Raw { get; init; } = Array.Empty<byte>();
     }
 
@@ -60,13 +58,14 @@ namespace MobyCom.Udp
             // CRC16 = últimos 2 bytes (big-endian no fio)
             ushort crc16 = (ushort)((payload[^2] << 8) | payload[^1]);
 
-            // ================================
-            // CAMPOS COMUNS
-            // ================================
-            // DeviceId: bytes 4..7
-            string deviceId = ReadHex(payload, 4, 4);
+            // Device ID: [04][05][06][07] LITTLE-ENDIAN
+            // Ex no fio: 38 86 1A DA  => ID = DA1A8638
+            string deviceId =
+                payload[7].ToString("X2") +
+                payload[6].ToString("X2") +
+                payload[5].ToString("X2") +
+                payload[4].ToString("X2");
 
-            // Channel / Technology
             byte channel = payload[10];
             byte technology = payload[11];
 
@@ -90,11 +89,15 @@ namespace MobyCom.Udp
             // ================================
             // EVENT
             // ================================
-            // Account: bytes 8..9
-            string account = ReadHex(payload, 8, 2);
+            // ⚠️ CORRIGIDO: Account bytes [18][19] - ordem DIRETA, não invertida
+            // No fio: [18]=0x45, [19]=0x23 → deve resultar em "4523"
+            string account =
+                payload[18].ToString("X2") +
+                payload[19].ToString("X2");
 
-            // EventCode: HEX, little-endian no payload
-            // Ex: 01 14 => 1401
+            // ⚠️ CORRIGIDO: EventCode bytes [23][22] - byte [23] é MSB, [22] é LSB
+            // Protocolo SIA DC-05: byte [23] contém o nibble mais significativo
+            // No fio: [23]=0x11, [22]=0x30 → deve resultar em "1130" (Burglary)
             string eventCode =
                 payload[23].ToString("X2") +
                 payload[22].ToString("X2");
@@ -105,14 +108,16 @@ namespace MobyCom.Udp
                 return false;
             }
 
-            // Partition: byte 25
+            // Partition: [25] (HEX)
             string partition = payload[25].ToString("X2");
 
-            // Zone/User: bytes 26..27
-            string zoneOrUser =
-                payload[26] == 0x00
-                    ? payload[27].ToString("X2")
-                    : payload[26].ToString("X2") + payload[27].ToString("X2");
+            // Zone/User: [26][27] (BCD) — low digits em [26], high digits em [27]
+            // Ex: [26]=0x23, [27]=0x00 => 023
+            int zoneLow = BcdToInt(payload[26]);     // 00..99
+            int zoneHigh = BcdToInt(payload[27]);    // 00..99
+            int zoneUserValue = (zoneHigh * 100) + zoneLow;
+
+            string zoneOrUser = zoneUserValue.ToString("D3");
 
             packet = new MobyComPacket
             {
@@ -131,26 +136,22 @@ namespace MobyCom.Udp
             return true;
         }
 
-        // ================================
-        // HELPERS
-        // ================================
-        private static string ReadHex(byte[] data, int index, int length)
+        private static int BcdToInt(byte b)
         {
-            var sb = new StringBuilder(length * 2);
-            for (int i = 0; i < length; i++)
-                sb.Append(data[index + i].ToString("X2"));
-            return sb.ToString();
+            int hi = (b >> 4) & 0xF;
+            int lo = b & 0xF;
+
+            if (hi > 9 || lo > 9)
+                throw new ArgumentException($"Invalid BCD byte: 0x{b:X2}");
+
+            return (hi * 10) + lo;
         }
 
-        // EVENT válido (Contact-ID)
         private static bool IsValidEventCode(string eventCode)
         {
-            if (string.IsNullOrWhiteSpace(eventCode) || eventCode.Length != 4)
-                return false;
-
-            return eventCode[0] == '1'
-                || eventCode[0] == '3'
-                || eventCode[0] == '6';
+            return !string.IsNullOrWhiteSpace(eventCode)
+                   && eventCode.Length == 4
+                   && (eventCode[0] == '1' || eventCode[0] == '3' || eventCode[0] == '6');
         }
     }
 }
